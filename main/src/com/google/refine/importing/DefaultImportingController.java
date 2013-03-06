@@ -45,6 +45,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.refine.importers.SeparatorBasedImporter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -59,7 +60,7 @@ import com.google.refine.util.ParsingUtilities;
 public class DefaultImportingController implements ImportingController {
 
     protected RefineServlet servlet;
-    
+
     @Override
     public void init(RefineServlet servlet) {
         this.servlet = servlet;
@@ -67,13 +68,13 @@ public class DefaultImportingController implements ImportingController {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
+            throws ServletException, IOException {
         throw new ServletException("GET verb not implemented");
     }
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
+            throws ServletException, IOException {
 
         /*
          * The uploaded file is in the POST body as a "file part". If
@@ -99,7 +100,7 @@ public class DefaultImportingController implements ImportingController {
     }
 
     private void doLoadRawData(HttpServletRequest request, HttpServletResponse response, Properties parameters)
-        throws ServletException, IOException {
+            throws ServletException, IOException {
 
         long jobID = Long.parseLong(parameters.getProperty("jobID"));
         ImportingJob job = ImportingManager.getJob(jobID);
@@ -107,7 +108,7 @@ public class DefaultImportingController implements ImportingController {
             HttpUtilities.respond(response, "error", "No such import job");
             return;
         }
-        
+
         job.updating = true;
         try {
             JSONObject config = job.getOrCreateDefaultConfig();
@@ -115,9 +116,9 @@ public class DefaultImportingController implements ImportingController {
                 HttpUtilities.respond(response, "error", "Job already started; cannot load more data");
                 return;
             }
-            
+
             ImportingUtilities.loadDataAndPrepareJob(
-                request, response, parameters, job, config);
+                    request, response, parameters, job, config);
         } catch (JSONException e) {
             throw new ServletException(e);
         } finally {
@@ -125,17 +126,17 @@ public class DefaultImportingController implements ImportingController {
             job.updating = false;
         }
     }
-    
+
     private void doUpdateFileSelection(HttpServletRequest request, HttpServletResponse response, Properties parameters)
-        throws ServletException, IOException {
-    
+            throws ServletException, IOException {
+
         long jobID = Long.parseLong(parameters.getProperty("jobID"));
         ImportingJob job = ImportingManager.getJob(jobID);
         if (job == null) {
             HttpUtilities.respond(response, "error", "No such import job");
             return;
         }
-        
+
         job.updating = true;
         try {
             JSONObject config = job.getOrCreateDefaultConfig();
@@ -143,12 +144,12 @@ public class DefaultImportingController implements ImportingController {
                 HttpUtilities.respond(response, "error", "Job not ready");
                 return;
             }
-            
+
             JSONArray fileSelectionArray = ParsingUtilities.evaluateJsonStringToArray(
                     request.getParameter("fileSelection"));
-            
+
             ImportingUtilities.updateJobWithNewFileSelection(job, fileSelectionArray);
-            
+
             replyWithJobData(request, response, job);
         } catch (JSONException e) {
             throw new ServletException(e);
@@ -157,17 +158,17 @@ public class DefaultImportingController implements ImportingController {
             job.updating = false;
         }
     }
-    
+
     private void doUpdateFormatAndOptions(HttpServletRequest request, HttpServletResponse response, Properties parameters)
-        throws ServletException, IOException {
-    
+            throws ServletException, IOException {
+
         long jobID = Long.parseLong(parameters.getProperty("jobID"));
         ImportingJob job = ImportingManager.getJob(jobID);
         if (job == null) {
             HttpUtilities.respond(response, "error", "No such import job");
             return;
         }
-        
+
         job.updating = true;
         try {
             JSONObject config = job.getOrCreateDefaultConfig();
@@ -175,22 +176,22 @@ public class DefaultImportingController implements ImportingController {
                 HttpUtilities.respond(response, "error", "Job not ready");
                 return;
             }
-            
+
             String format = request.getParameter("format");
             JSONObject optionObj = ParsingUtilities.evaluateJsonStringToObject(
                     request.getParameter("options"));
-            
+
             List<Exception> exceptions = new LinkedList<Exception>();
-            
+
             ImportingUtilities.previewParse(job, format, optionObj, exceptions);
-            
+
             Writer w = response.getWriter();
             JSONWriter writer = new JSONWriter(w);
             try {
                 writer.object();
                 if (exceptions.size() == 0) {
                     job.project.update(); // update all internal models, indexes, caches, etc.
-                    
+
                     writer.key("status"); writer.value("ok");
                 } else {
                     writer.key("status"); writer.value("error");
@@ -213,17 +214,17 @@ public class DefaultImportingController implements ImportingController {
             job.updating = false;
         }
     }
-    
+
     private void doInitializeParserUI(HttpServletRequest request, HttpServletResponse response, Properties parameters)
-        throws ServletException, IOException {
-    
+            throws ServletException, IOException {
+
         long jobID = Long.parseLong(parameters.getProperty("jobID"));
         ImportingJob job = ImportingManager.getJob(jobID);
         if (job == null) {
             HttpUtilities.respond(response, "error", "No such import job");
             return;
         }
-        
+
         String format = request.getParameter("format");
         Format formatRecord = ImportingManager.formatToRecord.get(format);
         if (formatRecord != null && formatRecord.parser != null) {
@@ -232,23 +233,41 @@ public class DefaultImportingController implements ImportingController {
             JSONObject result = new JSONObject();
             JSONUtilities.safePut(result, "status", "ok");
             JSONUtilities.safePut(result, "options", options);
-            
+
             HttpUtilities.respond(response, result.toString());
         } else {
             HttpUtilities.respond(response, "error", "Unrecognized format or format has no parser");
         }
     }
-    
+
+    public Long doCreateProjectOffline(long jobID)
+            throws ServletException, IOException {
+
+        ImportingJob job = ImportingManager.getJob(jobID);
+
+        job.updating = true;
+        job.touch();
+        job.getOrCreateDefaultConfig();
+
+        String format = "txt/csv";
+        JSONObject optionObj = new JSONObject();
+        ImportingManager.registerFormat("txt/csv","csv", "csv",new SeparatorBasedImporter());
+        List<Exception> exceptions = new LinkedList<Exception>();
+
+        long projectId = ImportingUtilities.createProject(job, format, optionObj, exceptions, true);
+        return projectId;
+    }
+
     private void doCreateProject(HttpServletRequest request, HttpServletResponse response, Properties parameters)
-        throws ServletException, IOException {
-    
+            throws ServletException, IOException {
+
         long jobID = Long.parseLong(parameters.getProperty("jobID"));
         ImportingJob job = ImportingManager.getJob(jobID);
         if (job == null) {
             HttpUtilities.respond(response, "error", "No such import job");
             return;
         }
-        
+
         job.updating = true;
         job.touch();
         try {
@@ -257,15 +276,15 @@ public class DefaultImportingController implements ImportingController {
                 HttpUtilities.respond(response, "error", "Job not ready");
                 return;
             }
-            
+
             String format = request.getParameter("format");
             JSONObject optionObj = ParsingUtilities.evaluateJsonStringToObject(
                     request.getParameter("options"));
-            
+
             List<Exception> exceptions = new LinkedList<Exception>();
-            
+
             ImportingUtilities.createProject(job, format, optionObj, exceptions, false);
-            
+
             HttpUtilities.respond(response, "ok", "done");
         } catch (JSONException e) {
             throw new ServletException(e);
@@ -273,8 +292,8 @@ public class DefaultImportingController implements ImportingController {
     }
 
     private void replyWithJobData(HttpServletRequest request, HttpServletResponse response, ImportingJob job)
-        throws ServletException, IOException {
-        
+            throws ServletException, IOException {
+
         Writer w = response.getWriter();
         JSONWriter writer = new JSONWriter(w);
         try {
@@ -289,12 +308,12 @@ public class DefaultImportingController implements ImportingController {
             w.close();
         }
     }
-    
+
     static public void writeErrors(JSONWriter writer, List<Exception> exceptions) throws JSONException {
         for (Exception e : exceptions) {
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
-            
+
             writer.object();
             writer.key("message");
             writer.value(e.getLocalizedMessage());
@@ -303,13 +322,13 @@ public class DefaultImportingController implements ImportingController {
             writer.endObject();
         }
     }
-    
+
     static public JSONArray convertErrorsToJsonArray(List<Exception> exceptions) {
         JSONArray a = new JSONArray();
         for (Exception e : exceptions) {
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
-            
+
             JSONObject o = new JSONObject();
             JSONUtilities.safePut(o, "message", e.getLocalizedMessage());
             JSONUtilities.safePut(o, "stack", sw.toString());

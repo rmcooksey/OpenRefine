@@ -33,27 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.importing;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-
+import com.google.refine.RefineServlet;
+import edu.mit.simile.butterfly.ButterflyModule;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONException;
 import org.json.JSONWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.refine.RefineServlet;
-
-import edu.mit.simile.butterfly.ButterflyModule;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class ImportingManager {
     static public class Format {
@@ -62,13 +52,13 @@ public class ImportingManager {
         final public boolean download;
         final public String uiClass;
         final public ImportingParser parser;
-        
+
         private Format(
-            String id,
-            String label,
-            boolean download,
-            String uiClass,
-            ImportingParser parser
+                String id,
+                String label,
+                boolean download,
+                String uiClass,
+                ImportingParser parser
         ) {
             this.id = id;
             this.label = label;
@@ -77,37 +67,37 @@ public class ImportingManager {
             this.parser = parser;
         }
     }
-    
+
     final static Logger logger = LoggerFactory.getLogger("importing");
-    
+
     static private RefineServlet servlet;
     static private File importDir;
     final static private Map<Long, ImportingJob> jobs = new HashMap<Long, ImportingJob>();
-    
+
     // Mapping from format to label, e.g., "text" to "Text files", "text/xml" to "XML files"
     final static public Map<String, Format> formatToRecord = new HashMap<String, Format>();
-    
+
     // Mapping from format to guessers
     final static public Map<String, List<FormatGuesser>> formatToGuessers = new HashMap<String, List<FormatGuesser>>();
-    
+
     // Mapping from file extension to format, e.g., ".xml" to "text/xml"
     final static public Map<String, String> extensionToFormat = new HashMap<String, String>();
-    
+
     // Mapping from mime type to format, e.g., "application/json" to "text/json"
     final static public Map<String, String> mimeTypeToFormat = new HashMap<String, String>();
-    
+
     // URL rewriters
     final static public Set<UrlRewriter> urlRewriters = new HashSet<UrlRewriter>();
-    
+
     // Mapping from controller name to controller
     final static public Map<String, ImportingController> controllers = new HashMap<String, ImportingController>();
-    
+
     // timer for periodically deleting stale importing jobs
     static private Timer _timer;
 
     final static private long s_timerPeriod = 1000 * 60 * 10; // 10 minutes
     final static private long s_stalePeriod = 1000 * 60 * 60; // 60 minutes
-    
+
     static private class CleaningTimerTask extends TimerTask {
         @Override
         public void run() {
@@ -120,27 +110,27 @@ public class ImportingManager {
             }
         }
     }
-    
+
     static public void initialize(RefineServlet servlet) {
         ImportingManager.servlet = servlet;
-        
+
         _timer = new Timer("autosave");
         _timer.schedule(new CleaningTimerTask(), s_timerPeriod);
     }
-    
+
     static public void registerFormat(String format, String label) {
         registerFormat(format, label, null, null);
     }
-    
+
     static public void registerFormat(String format, String label, String uiClass, ImportingParser parser) {
         formatToRecord.put(format, new Format(format, label, true, uiClass, parser));
     }
-    
+
     static public void registerFormat(
             String format, String label, boolean download, String uiClass, ImportingParser parser) {
         formatToRecord.put(format, new Format(format, label, download, uiClass, parser));
     }
-    
+
     static public void registerFormatGuesser(String format, FormatGuesser guesser) {
         List<FormatGuesser> guessers = formatToGuessers.get(format);
         if (guessers == null) {
@@ -149,31 +139,31 @@ public class ImportingManager {
         }
         guessers.add(0, guesser); // prepend so that newer guessers take priority
     }
-    
+
     static public void registerExtension(String extension, String format) {
         extensionToFormat.put(extension.startsWith(".") ? extension : ("." + extension), format);
     }
-    
+
     static public void registerMimeType(String mimeType, String format) {
         mimeTypeToFormat.put(mimeType, format);
     }
-    
+
     static public void registerUrlRewriter(UrlRewriter urlRewriter) {
         urlRewriters.add(urlRewriter);
     }
-    
+
     static public void registerController(ButterflyModule module, String name, ImportingController controller) {
         String key = module.getName() + "/" + name;
         controllers.put(key, controller);
-        
+
         controller.init(servlet);
     }
 
-    static synchronized public File getImportDir() {
+    static synchronized public File getImportDirOffline() {
         if (importDir == null) {
-            File tempDir = servlet.getTempDir();
+            File tempDir = new File(System.getProperty("java.io.tmpdir"));
             importDir = tempDir == null ? new File(".import-temp") : new File(tempDir, "import");
-            
+
             if (importDir.exists()) {
                 try {
                     // start fresh
@@ -185,21 +175,48 @@ public class ImportingManager {
         }
         return importDir;
     }
-    
+
+    static synchronized public File getImportDir() {
+        if (importDir == null) {
+            File tempDir = servlet.getTempDir();
+            importDir = tempDir == null ? new File(".import-temp") : new File(tempDir, "import");
+
+            if (importDir.exists()) {
+                try {
+                    // start fresh
+                    FileUtils.deleteDirectory(importDir);
+                } catch (IOException e) {
+                }
+            }
+            importDir.mkdirs();
+        }
+        return importDir;
+    }
+
+    static public ImportingJob createOfflineJob() {
+        long id = System.currentTimeMillis() + (long) (Math.random() * 1000000);
+        File jobDir = new File(getImportDirOffline(), Long.toString(id));
+
+        ImportingJob job = new ImportingJob(id, jobDir);
+        jobs.put(id, job);
+
+        return job;
+    }
+
     static public ImportingJob createJob() {
         long id = System.currentTimeMillis() + (long) (Math.random() * 1000000);
         File jobDir = new File(getImportDir(), Long.toString(id));
-        
+
         ImportingJob job = new ImportingJob(id, jobDir);
         jobs.put(id, job);
-        
+
         return job;
     }
-    
+
     static public ImportingJob getJob(long id) {
         return jobs.get(id);
     }
-    
+
     static public void disposeJob(long id) {
         ImportingJob job = getJob(id);
         if (job != null) {
@@ -207,15 +224,15 @@ public class ImportingManager {
             jobs.remove(id);
         }
     }
-    
+
     static public void writeConfiguration(JSONWriter writer, Properties options) throws JSONException {
         writer.object();
-        
+
         writer.key("formats");
         writer.object();
         for (String format : formatToRecord.keySet()) {
             Format record = formatToRecord.get(format);
-            
+
             writer.key(format);
             writer.object();
             writer.key("id"); writer.value(record.id);
@@ -225,7 +242,7 @@ public class ImportingManager {
             writer.endObject();
         }
         writer.endObject();
-        
+
         writer.key("mimeTypeToFormat");
         writer.object();
         for (String mimeType : mimeTypeToFormat.keySet()) {
@@ -233,7 +250,7 @@ public class ImportingManager {
             writer.value(mimeTypeToFormat.get(mimeType));
         }
         writer.endObject();
-        
+
         writer.key("extensionToFormat");
         writer.object();
         for (String extension : extensionToFormat.keySet()) {
@@ -241,10 +258,10 @@ public class ImportingManager {
             writer.value(extensionToFormat.get(extension));
         }
         writer.endObject();
-        
+
         writer.endObject();
     }
-    
+
     static public String getFormatFromFileName(String fileName) {
         int start = 0;
         while (true) {
@@ -252,7 +269,7 @@ public class ImportingManager {
             if (dot < 0) {
                 break;
             }
-            
+
             String extension = fileName.substring(dot);
             String format = extensionToFormat.get(extension);
             if (format != null) {
@@ -263,11 +280,11 @@ public class ImportingManager {
         }
         return null;
     }
-    
+
     static public String getFormatFromMimeType(String mimeType) {
         return mimeTypeToFormat.get(mimeType);
     }
-    
+
     static public String getFormat(String fileName, String mimeType) {
         String fileNameFormat = getFormatFromFileName(fileName);
         String mimeTypeFormat = mimeType == null ? null : getFormatFromMimeType(mimeType);
@@ -282,7 +299,7 @@ public class ImportingManager {
             return fileNameFormat;
         }
     }
-    
+
     static private void cleanUpStaleJobs() {
         long now = System.currentTimeMillis();
         for (Long id : new HashSet<Long>(jobs.keySet())) {
@@ -290,7 +307,7 @@ public class ImportingManager {
             if (job != null && !job.updating && now - job.lastTouched > s_stalePeriod) {
                 job.dispose();
                 jobs.remove(id);
-                
+
                 logger.info("Disposed " + id);
             }
         }

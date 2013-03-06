@@ -63,49 +63,49 @@ public class SeparatorBasedImporter extends TabularImportingParserBase {
     public SeparatorBasedImporter() {
         super(false);
     }
-    
+
     @Override
     public JSONObject createParserUIInitializationData(ImportingJob job,
-            List<JSONObject> fileRecords, String format) {
+                                                       List<JSONObject> fileRecords, String format) {
         JSONObject options = super.createParserUIInitializationData(job, fileRecords, format);
-        
+
         String separator = guessSeparator(job, fileRecords);
         JSONUtilities.safePut(options, "separator", separator != null ? separator : "\\t");
-        
+
         JSONUtilities.safePut(options, "guessCellValueTypes", true);
         JSONUtilities.safePut(options, "processQuotes", true);
 
         return options;
     }
-    
+
     @Override
     public void parseOneFile(
-        Project project,
-        ProjectMetadata metadata,
-        ImportingJob job,
-        String fileSource,
-        Reader reader,
-        int limit,
-        JSONObject options,
-        List<Exception> exceptions
+            Project project,
+            ProjectMetadata metadata,
+            ImportingJob job,
+            String fileSource,
+            Reader reader,
+            int limit,
+            JSONObject options,
+            List<Exception> exceptions
     ) {
-        String sep = JSONUtilities.getString(options, "separator", "\\t");
+        String sep = JSONUtilities.getString(options, "separator", ",");
         if (sep == null || "".equals(sep)) {
             sep = "\\t";
         }
         sep = StringEscapeUtils.unescapeJava(sep);
         boolean processQuotes = JSONUtilities.getBoolean(options, "processQuotes", true);
-        
+
         final CSVParser parser = new CSVParser(
-            sep.toCharArray()[0],//HACK changing string to char - won't work for multi-char separators.
-            CSVParser.DEFAULT_QUOTE_CHARACTER,
+                sep.toCharArray()[0],//HACK changing string to char - won't work for multi-char separators.
+                CSVParser.DEFAULT_QUOTE_CHARACTER,
             (char) 127, // we don't want escape processing try DEL as a rare character until we can turn it off
-            CSVParser.DEFAULT_STRICT_QUOTES,
-            CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE,
-            !processQuotes);
-        
+                CSVParser.DEFAULT_STRICT_QUOTES,
+                CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE,
+                !processQuotes);
+
         final LineNumberReader lnReader = new LineNumberReader(reader);
-        
+
         TableDataReader dataReader = new TableDataReader() {
             @Override
             public List<Object> getNextRowOfCells() throws IOException {
@@ -117,13 +117,13 @@ public class SeparatorBasedImporter extends TabularImportingParserBase {
                 }
             }
         };
-        
+
         TabularImportingParserBase.readTable(project, metadata, job, dataReader, fileSource, limit, options, exceptions);
     }
-    
+
     static protected ArrayList<Object> getCells(String line, CSVParser parser, LineNumberReader lnReader)
-        throws IOException{
-        
+            throws IOException{
+
         ArrayList<Object> cells = new ArrayList<Object>();
         String[] tokens = parser.parseLineMulti(line);
         for (String s : tokens){
@@ -137,13 +137,13 @@ public class SeparatorBasedImporter extends TabularImportingParserBase {
         }
         return cells;
     }
-    
+
     static public String guessSeparator(ImportingJob job, List<JSONObject> fileRecords) {
         for (int i = 0; i < 5 && i < fileRecords.size(); i++) {
             JSONObject fileRecord = fileRecords.get(i);
             String encoding = ImportingUtilities.getEncoding(fileRecord);
             String location = JSONUtilities.getString(fileRecord, "location", null);
-            
+
             if (location != null) {
                 File file = new File(job.getRawDataDir(), location);
                 // Quotes are turned on by default, so use that for guessing
@@ -155,13 +155,13 @@ public class SeparatorBasedImporter extends TabularImportingParserBase {
         }
         return null;
     }
-    
+
     static public class Separator {
         char separator;
         int totalCount = 0;
         int totalOfSquaredCount = 0;
         int currentLineCount = 0;
-        
+
         double averagePerLine;
         double stddev;
     }
@@ -179,57 +179,57 @@ public class SeparatorBasedImporter extends TabularImportingParserBase {
             try {
                 List<Separator> separators = new ArrayList<SeparatorBasedImporter.Separator>();
                 Map<Character, Separator> separatorMap = new HashMap<Character, SeparatorBasedImporter.Separator>();
-                
+
                 int totalChars = 0;
                 int lineCount = 0;
                 boolean inQuote = false;
                 String s;
                 while (totalChars < 64 * 1024 &&
-                       lineCount < 100 &&
-                       (s = lineNumberReader.readLine()) != null) {
-                    
+                        lineCount < 100 &&
+                        (s = lineNumberReader.readLine()) != null) {
+
                     totalChars += s.length() + 1; // count the new line character
                     if (s.length() == 0) {
                         continue;
                     }
                     lineCount++;
-                    
+
                     for (int i = 0; i < s.length(); i++) {
                         char c = s.charAt(i);
                         if ('"' == c) {
                             inQuote = !inQuote;
                         }
-                        if (!Character.isLetterOrDigit(c) 
-                                && !"\"' .-".contains(s.subSequence(i, i + 1)) 
+                        if (!Character.isLetterOrDigit(c)
+                                && !"\"' .-".contains(s.subSequence(i, i + 1))
                                 && (!handleQuotes || !inQuote)) {
                             Separator separator = separatorMap.get(c);
                             if (separator == null) {
                                 separator = new Separator();
                                 separator.separator = c;
-                                
+
                                 separatorMap.put(c, separator);
                                 separators.add(separator);
                             }
                             separator.currentLineCount++;
                         }
                     }
-                    
+
                     for (Separator separator : separators) {
                         separator.totalCount += separator.currentLineCount;
                         separator.totalOfSquaredCount += separator.currentLineCount * separator.currentLineCount;
                         separator.currentLineCount = 0;
                     }
                 }
-                
+
                 if (separators.size() > 0) {
                     for (Separator separator : separators) {
                         separator.averagePerLine = separator.totalCount / (double) lineCount;
-                         separator.stddev = Math.sqrt(
-                                 (((double)lineCount * separator.totalOfSquaredCount) - (separator.totalCount * separator.totalCount))
+                        separator.stddev = Math.sqrt(
+                                (((double)lineCount * separator.totalOfSquaredCount) - (separator.totalCount * separator.totalCount))
                                         / ((double)lineCount*(lineCount-1))
-                            );
+                        );
                     }
-                    
+
                     Collections.sort(separators, new Comparator<Separator>() {
                         @Override
                         public int compare(Separator sep0, Separator sep1) {

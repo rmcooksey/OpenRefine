@@ -33,30 +33,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.commands.history;
 
-import java.io.IOException;
-import java.util.Properties;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.google.refine.commands.Command;
 import com.google.refine.model.AbstractOperation;
 import com.google.refine.model.Project;
 import com.google.refine.operations.OperationRegistry;
 import com.google.refine.process.Process;
 import com.google.refine.util.ParsingUtilities;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Properties;
 
 public class ApplyOperationsCommand extends Command {
-    
+
+    private Project project=null;
+    private String jsonString;
+
+    public ApplyOperationsCommand() {
+
+    }
+
+    public ApplyOperationsCommand(Project project,String jsonString) throws JSONException {
+        this.project = project;
+        this.jsonString = jsonString;
+        JSONArray a = ParsingUtilities.evaluateJsonStringToArray(jsonString);
+        int count = a.length();
+        for (int i = 0; i < count; i++) {
+            JSONObject obj = a.getJSONObject(i);
+
+            reconstructOperationOffline(project, obj);
+        }
+    }
+
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         Project project = getProject(request);
         String jsonString = request.getParameter("operations");
         try {
@@ -64,7 +81,7 @@ public class ApplyOperationsCommand extends Command {
             int count = a.length();
             for (int i = 0; i < count; i++) {
                 JSONObject obj = a.getJSONObject(i);
-                
+
                 reconstructOperation(project, obj);
             }
 
@@ -77,13 +94,32 @@ public class ApplyOperationsCommand extends Command {
             respondException(response, e);
         }
     }
-    
+
+    protected void reconstructOperationOffline(Project project, JSONObject obj) {
+        AbstractOperation operation = OperationRegistry.reconstruct(project, obj);
+        try {
+            String bob = String.valueOf(obj.get("description"));
+            System.out.println("Doing operation: " + bob);
+        } catch (JSONException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        if (operation != null) {
+            try {
+                Process process = operation.createProcess(project, new Properties());
+
+                project.processManager.queueProcess(process);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     protected void reconstructOperation(Project project, JSONObject obj) {
         AbstractOperation operation = OperationRegistry.reconstruct(project, obj);
         if (operation != null) {
             try {
                 Process process = operation.createProcess(project, new Properties());
-                
+
                 project.processManager.queueProcess(process);
             } catch (Exception e) {
                 e.printStackTrace();

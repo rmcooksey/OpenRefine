@@ -33,33 +33,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.io;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Properties;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.tools.tar.TarEntry;
-import org.apache.tools.tar.TarInputStream;
-import org.apache.tools.tar.TarOutputStream;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONTokener;
-import org.json.JSONWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.refine.ProjectManager;
 import com.google.refine.ProjectMetadata;
 import com.google.refine.history.HistoryEntryManager;
 import com.google.refine.model.Project;
 import com.google.refine.preference.TopList;
+import org.apache.tools.tar.TarEntry;
+import org.apache.tools.tar.TarInputStream;
+import org.apache.tools.tar.TarOutputStream;
+import org.json.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.util.Properties;
+import java.util.zip.GZIPInputStream;
 
 public class FileProjectManager extends ProjectManager {
     final static protected String s_projectDirNameSuffix = ".project";
@@ -76,7 +64,7 @@ public class FileProjectManager extends ProjectManager {
 
     }
 
-    protected FileProjectManager(File dir) {
+    public FileProjectManager(File dir) {
         super();
         _workspaceDir = dir;
         if (!_workspaceDir.exists() && !_workspaceDir.mkdirs()) {
@@ -85,7 +73,7 @@ public class FileProjectManager extends ProjectManager {
         }
 
         load();
-        recover();
+//        recover();
     }
 
     public File getWorkspaceDir() {
@@ -159,7 +147,7 @@ public class FileProjectManager extends ProjectManager {
                 }
             }
         }
-        
+
         tin.close();
     }
 
@@ -363,7 +351,7 @@ public class FileProjectManager extends ProjectManager {
 
                 if (obj.has("expressions") && !obj.isNull("expressions")) { // backward compatibility
                     ((TopList) _preferenceStore.get("scripting.expressions"))
-                    .load(obj.getJSONArray("expressions"));
+                            .load(obj.getJSONArray("expressions"));
                 }
 
                 found = true;
@@ -401,7 +389,7 @@ public class FileProjectManager extends ProjectManager {
                     if (id > 0 && !_projectsMetadata.containsKey(id)) {
                         if (loadProjectMetadata(id)) {
                             logger.info(
-                                    "Recovered project named " + 
+                                    "Recovered project named " +
                                             getProjectMetadata(id).getName() +
                                             " in directory " + name);
                         } else {
