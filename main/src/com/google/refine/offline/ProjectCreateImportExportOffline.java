@@ -32,6 +32,9 @@ import java.io.IOException;
  * Time: 12:24
  */
 public class ProjectCreateImportExportOffline {
+
+    long projectId = 0;
+
     public void applyRefinementsToFile(File workspaceRefineProjectFolder, File inputFile, File outputFile, String grelOperationsToApply) throws IOException, ServletException, JSONException {
         ProjectManager projectManager = new FileProjectManager(workspaceRefineProjectFolder);
         ProjectManager.singleton = projectManager;
@@ -43,7 +46,6 @@ public class ProjectCreateImportExportOffline {
         ImportingUtilities.loadDataAndPrepareJobOffline(importingJob, importingJob.config, inputFile);
 
         DefaultImportingController defaultImportingController = new DefaultImportingController();
-        long projectId = 0;
         try {
             projectId = defaultImportingController.doCreateProjectOffline(id);
         } catch (ServletException e) {
@@ -102,4 +104,7 @@ public class ProjectCreateImportExportOffline {
         OperationRegistry.registerOperation(dummyButterfly, "recon-copy-across-columns", ReconCopyAcrossColumnsOperation.class);
     }
 
+    public long getProjectId() {
+        return projectId;
+    }
 }
