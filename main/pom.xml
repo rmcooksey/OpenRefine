@@ -1,8 +1,8 @@
 <project>
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.open.refine</groupId>
-  <artifactId>main</artifactId>
-  <version>1</version>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.open.refine</groupId>
+    <artifactId>main</artifactId>
+    <version>1</version>
 
     <developers>
         <developer>
@@ -10,6 +10,13 @@
             <email>richard@cooksey.me</email>
         </developer>
     </developers>
+
+    <distributionManagement>
+        <site>
+            <id>your-site</id>
+            <url>scp://your-site.org:/maven</url>
+        </site>
+    </distributionManagement>
 
     <build>
         <sourceDirectory>src</sourceDirectory>
@@ -19,6 +26,21 @@
                 <directory>testresources</directory>
             </testResource>
         </testResources>
+
+        <plugins>
+            <plugin>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.2</version>
+                <dependencies>
+                    <dependency><!-- add support for ssh/scp -->
+                        <groupId>org.apache.maven.wagon</groupId>
+                        <artifactId>wagon-ssh</artifactId>
+                        <version>1.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+
     </build>
 
     <dependencies>      <!-- TODO: swap local jar's for Maven sourced jars -->
