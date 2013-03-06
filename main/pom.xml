@@ -14,6 +14,11 @@
     <build>
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>tests</testSourceDirectory>
+        <testResources>
+            <testResource>
+                <directory>testresources</directory>
+            </testResource>
+        </testResources>
     </build>
 
     <dependencies>      <!-- TODO: swap local jar's for Maven sourced jars -->
@@ -21,6 +26,11 @@
             <groupId>com.open.refine</groupId>
             <artifactId>core</artifactId>
             <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.2</version>
         </dependency>
 
         <dependency>
@@ -236,20 +246,6 @@
             <artifactId>signpost-core</artifactId>
             <version>1</version>
             <systemPath>${pom.basedir}/webapp/WEB-INF/lib/signpost-core-1.2.1.2.jar</systemPath>
-            <scope>system</scope>
-        </dependency>
-        <dependency>
-            <groupId>com</groupId>
-            <artifactId>slf4j-api-1.5.6</artifactId>
-            <version>1</version>
-            <systemPath>${pom.basedir}/webapp/WEB-INF/lib/slf4j-api-1.5.6.jar</systemPath>
-            <scope>system</scope>
-        </dependency>
-        <dependency>
-            <groupId>com</groupId>
-            <artifactId>slf4j-log4j12-1.5.6</artifactId>
-            <version>1</version>
-            <systemPath>${pom.basedir}/webapp/WEB-INF/lib/slf4j-log4j12-1.5.6.jar</systemPath>
             <scope>system</scope>
         </dependency>
         <dependency>
