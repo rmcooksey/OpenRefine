@@ -33,18 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.operations;
 
+import com.google.refine.model.AbstractOperation;
+import com.google.refine.model.Project;
+import edu.mit.simile.butterfly.ButterflyModule;
+import org.json.JSONObject;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.json.JSONObject;
-
-import com.google.refine.model.AbstractOperation;
-import com.google.refine.model.Project;
-
-import edu.mit.simile.butterfly.ButterflyModule;
 
 public abstract class OperationRegistry {
 
@@ -53,18 +51,22 @@ public abstract class OperationRegistry {
     
     static final public Map<Class<? extends AbstractOperation>, String> s_opClassToName =
         new HashMap<Class<? extends AbstractOperation>, String>();
-    
-    static public void registerOperation(ButterflyModule module, String name, Class<? extends AbstractOperation> klass) {
-        String key = module.getName() + "/" + name;
-        
+
+    static public void registerOperation(String butterflyModuleName, String name, Class<? extends AbstractOperation> klass) {
+        String key = butterflyModuleName + "/" + name;
+
         s_opClassToName.put(klass, key);
-        
+
         List<Class<? extends AbstractOperation>> classes = s_opNameToClass.get(key);
         if (classes == null) {
             classes = new LinkedList<Class<? extends AbstractOperation>>();
             s_opNameToClass.put(key, classes);
         }
         classes.add(klass);
+    }
+
+    static public void registerOperation(ButterflyModule module, String name, Class<? extends AbstractOperation> klass) {
+        registerOperation(module.getName(),name,klass);
     }
     
     static public AbstractOperation reconstruct(Project project, JSONObject obj) {

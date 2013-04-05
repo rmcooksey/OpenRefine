@@ -47,6 +47,8 @@ public class ProjectCreateImportExportOfflineTest {
                         "  }\n" +
                         "]";
 
-        new ProjectCreateImportExportOffline().applyRefinementsToFile(workspaceRefineProjectFolder, inputFile, outputFile, grelOperationsToApply);
+        ProjectCreateImportExportOffline projectCreateImportExportOffline = new ProjectCreateImportExportOffline(workspaceRefineProjectFolder,inputFile);
+//        projectCreateImportExportOffline.applyRefinements(grelOperationsToApply);
+        projectCreateImportExportOffline.exportCSV(outputFile);
     }
 }

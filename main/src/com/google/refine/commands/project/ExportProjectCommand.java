@@ -33,19 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.commands.project;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.GZIPOutputStream;
+import com.google.refine.ProjectManager;
+import com.google.refine.commands.Command;
+import com.google.refine.model.Project;
+import org.apache.tools.tar.TarOutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.tools.tar.TarOutputStream;
-
-import com.google.refine.ProjectManager;
-import com.google.refine.commands.Command;
-import com.google.refine.model.Project;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class ExportProjectCommand extends Command {
 
@@ -70,7 +68,7 @@ public class ExportProjectCommand extends Command {
         }
     }
 
-    protected void gzipTarToOutputStream(Project project, OutputStream os) throws IOException {
+    public void gzipTarToOutputStream(Project project, OutputStream os) throws IOException {
         GZIPOutputStream gos = new GZIPOutputStream(os);
         try {
             tarToOutputStream(project, gos);

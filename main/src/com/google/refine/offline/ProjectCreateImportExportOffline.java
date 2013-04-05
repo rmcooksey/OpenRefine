@@ -18,7 +18,6 @@ import com.google.refine.operations.row.RowFlagOperation;
 import com.google.refine.operations.row.RowRemovalOperation;
 import com.google.refine.operations.row.RowReorderOperation;
 import com.google.refine.operations.row.RowStarOperation;
-import edu.mit.simile.butterfly.ButterflyModule;
 import org.json.JSONException;
 
 import javax.servlet.ServletException;
@@ -34,8 +33,9 @@ import java.io.IOException;
 public class ProjectCreateImportExportOffline {
 
     long projectId = 0;
+    Project myProject;
 
-    public void applyRefinementsToFile(File workspaceRefineProjectFolder, File inputFile, File outputFile, String grelOperationsToApply) throws IOException, ServletException, JSONException {
+    public ProjectCreateImportExportOffline (File workspaceRefineProjectFolder, File inputFile) {
         ProjectManager projectManager = new FileProjectManager(workspaceRefineProjectFolder);
         ProjectManager.singleton = projectManager;
 
@@ -54,54 +54,67 @@ public class ProjectCreateImportExportOffline {
             e.printStackTrace();
         }
 
-        Project myProject = projectManager.getProject(projectId);
-        Engine engine = new Engine(myProject);
+        myProject = projectManager.getProject(projectId);
 
-        registerRefineOperations(new DummyButterflyModule());
-
-        new ApplyOperationsCommand(myProject, grelOperationsToApply);
-
-//        projectManager.ensureProjectSaved(projectId);
-
-        CsvExporter csvExporter = new CsvExporter();
-        csvExporter.export(myProject, null, engine, new FileWriter(outputFile));
-
+        ProjectManager.singleton.ensureProjectSaved(projectId,myProject);
         System.out.println("Access in Refine here: http://127.0.0.1:3333/project?project=" + projectId);
     }
 
-    private void registerRefineOperations(ButterflyModule dummyButterfly) {
-        OperationRegistry.registerOperation(dummyButterfly, "text-transform", TextTransformOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "mass-edit", MassEditOperation.class);
+    public boolean applyRefinements(String grelOperationsToApply) {
+        registerRefineOperations();
 
-        OperationRegistry.registerOperation(dummyButterfly, "multivalued-cell-join", MultiValuedCellJoinOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "multivalued-cell-split", MultiValuedCellSplitOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "fill-down", FillDownOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "blank-down", BlankDownOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "transpose-columns-into-rows", TransposeColumnsIntoRowsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "transpose-rows-into-columns", TransposeRowsIntoColumnsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "key-value-columnize", KeyValueColumnizeOperation.class);
+        try {
+            new ApplyOperationsCommand(myProject, grelOperationsToApply);
+        } catch (JSONException e) {
+            return false;
+        }
 
-        OperationRegistry.registerOperation(dummyButterfly, "column-addition", ColumnAdditionOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "column-removal", ColumnRemovalOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "column-rename", ColumnRenameOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "column-move", ColumnMoveOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "column-split", ColumnSplitOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "column-addition-by-fetching-urls", ColumnAdditionByFetchingURLsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "column-reorder", ColumnReorderOperation.class);
+        ProjectManager.singleton.ensureProjectSaved(projectId,myProject);
+        return true;
+    }
 
-        OperationRegistry.registerOperation(dummyButterfly, "row-removal", RowRemovalOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "row-star", RowStarOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "row-flag", RowFlagOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "row-reorder", RowReorderOperation.class);
+    public void exportCSV(File outputFile) throws IOException {
+        Engine engine = new Engine(myProject);
 
-        OperationRegistry.registerOperation(dummyButterfly, "recon", ReconOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-mark-new-topics", ReconMarkNewTopicsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-match-best-candidates", ReconMatchBestCandidatesOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-discard-judgments", ReconDiscardJudgmentsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-match-specific-topic-to-cells", ReconMatchSpecificTopicOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-judge-similar-cells", ReconJudgeSimilarCellsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-clear-similar-cells", ReconClearSimilarCellsOperation.class);
-        OperationRegistry.registerOperation(dummyButterfly, "recon-copy-across-columns", ReconCopyAcrossColumnsOperation.class);
+        CsvExporter csvExporter = new CsvExporter();
+        csvExporter.export(myProject, null, engine, new FileWriter(outputFile));
+    }
+
+    private void registerRefineOperations() {
+        String butterflyModuleName = "core";
+
+        OperationRegistry.registerOperation(butterflyModuleName, "text-transform", TextTransformOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "mass-edit", MassEditOperation.class);
+
+        OperationRegistry.registerOperation(butterflyModuleName, "multivalued-cell-join", MultiValuedCellJoinOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "multivalued-cell-split", MultiValuedCellSplitOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "fill-down", FillDownOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "blank-down", BlankDownOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "transpose-columns-into-rows", TransposeColumnsIntoRowsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "transpose-rows-into-columns", TransposeRowsIntoColumnsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "key-value-columnize", KeyValueColumnizeOperation.class);
+
+        OperationRegistry.registerOperation(butterflyModuleName, "column-addition", ColumnAdditionOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "column-removal", ColumnRemovalOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "column-rename", ColumnRenameOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "column-move", ColumnMoveOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "column-split", ColumnSplitOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "column-addition-by-fetching-urls", ColumnAdditionByFetchingURLsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "column-reorder", ColumnReorderOperation.class);
+
+        OperationRegistry.registerOperation(butterflyModuleName, "row-removal", RowRemovalOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "row-star", RowStarOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "row-flag", RowFlagOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "row-reorder", RowReorderOperation.class);
+
+        OperationRegistry.registerOperation(butterflyModuleName, "recon", ReconOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-mark-new-topics", ReconMarkNewTopicsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-match-best-candidates", ReconMatchBestCandidatesOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-discard-judgments", ReconDiscardJudgmentsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-match-specific-topic-to-cells", ReconMatchSpecificTopicOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-judge-similar-cells", ReconJudgeSimilarCellsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-clear-similar-cells", ReconClearSimilarCellsOperation.class);
+        OperationRegistry.registerOperation(butterflyModuleName, "recon-copy-across-columns", ReconCopyAcrossColumnsOperation.class);
     }
 
     public long getProjectId() {

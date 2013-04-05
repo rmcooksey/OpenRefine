@@ -154,6 +154,35 @@ public abstract class ProjectManager {
     public abstract void exportProject(long projectId, TarOutputStream tos) throws IOException;
 
 
+    //------------Save to record store------------
+    /**
+     * Saves a project and its metadata to the data store
+     * @param id
+     */
+    public void ensureProjectSaved(long id, Project project) {
+        synchronized(this){
+            ProjectMetadata metadata = this.getProjectMetadata(id);
+            if (metadata != null) {
+                try {
+                    saveMetadata(metadata, id);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }//FIXME what should be the behaviour if metadata is null? i.e. not found
+
+//            Project project = getProject(id);
+            if (project != null && metadata != null) { // && metadata.getModified().after(project.getLastSave())) {
+                try {
+                    saveProject(project);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }//FIXME what should be the behaviour if project is null? i.e. not found or loaded.
+            //FIXME what should happen if the metadata is found, but not the project? or vice versa?
+        }
+
+    }
+
  //------------Save to record store------------
     /**
      * Saves a project and its metadata to the data store

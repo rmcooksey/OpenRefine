@@ -1,8 +1,8 @@
 <project>
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.open.refine</groupId>
-  <artifactId>core</artifactId>
-  <version>1</version>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.open.refine</groupId>
+    <artifactId>core</artifactId>
+    <version>1</version>
 
     <developers>
         <developer>
@@ -11,9 +11,38 @@
         </developer>
     </developers>
 
+    <distributionManagement>
+        <repository>
+            <id>your-id</id>
+            <url>scp://your.org:/mnt/maven</url>
+        </repository>
+    </distributionManagement>
+
     <build>
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>tests</testSourceDirectory>
+
+        <resources>
+            <resource>
+                <directory>src</directory>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.7</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.wagon</groupId>
+                        <artifactId>wagon-ssh</artifactId>
+                        <version>2.2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+
     </build>
 
     <dependencies> <!-- TODO: swap local jar's for Maven sourced jars -->
