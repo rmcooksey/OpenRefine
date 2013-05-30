@@ -193,6 +193,6 @@ public class ExpressionEqualRowFilter implements RowFilter {
     protected boolean testValue(Object v, Object match) {
         return (v instanceof Number && match instanceof Number) ?
                 ((Number) match).doubleValue() == ((Number) v).doubleValue() :
-                match.equals(v);
+                match.toString().equals(v.toString());
     }
 }
