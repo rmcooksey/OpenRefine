@@ -38,13 +38,13 @@ public class ProjectCreateImportExportOfflineTest {
                         "    \"engineConfig\": {\n" +
                         "      \"facets\": [],\n" +
                         "      \"mode\": \"row-based\"\n" +
-                        "    },\n" +
+                        "            },\n" +
                         "    \"newColumnName\": \"RichCol\",\n" +
                         "    \"columnInsertIndex\": 3,\n" +
                         "    \"baseColumnName\": \"Colour\",\n" +
                         "    \"expression\": \"grel:\\\"Rich \\\" + value\",\n" +
                         "    \"onError\": \"set-to-blank\"\n" +
-                        "  }\n" +
+                        "              }\n" +
                         "]";
 
         ProjectCreateImportExportOffline projectCreateImportExportOffline = new ProjectCreateImportExportOffline(workspaceRefineProjectFolder,inputFile);

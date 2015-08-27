@@ -11,6 +11,11 @@
         </developer>
     </developers>
 
+    <properties>
+        <javaVersion>1.6</javaVersion>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <distributionManagement>
         <repository>
             <id>your-id</id>
@@ -28,11 +33,6 @@
             <id>OpenNMSRepo</id>
             <name>OpenNMS Repo</name>
             <url>http://maven.opennms.org/content/repositories/public/</url>
-        </repository>
-        <repository>
-            <id>nightlabs</id>
-            <name>For OpenCSV snapshot</name>
-            <url>http://dev.nightlabs.org/maven-repository/repo/</url>
         </repository>
         <repository>
             <id>maven.alfresco.com</id>
@@ -59,6 +59,14 @@
         </testResources>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${javaVersion}</source>
+                    <target>${javaVersion}</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -88,11 +96,9 @@
         </dependency>
 
         <dependency>
-            <groupId>rich</groupId>
-            <artifactId>ant-tools</artifactId>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
             <version>1.8.0</version>
-            <!--<systemPath>${pom.basedir}/webapp/WEB-INF/lib/ant-tools-1.8.0.jar</systemPath>-->
-            <!--<scope>system</scope>-->
         </dependency>
         <dependency>
             <groupId>rich</groupId>
@@ -225,9 +231,9 @@
             <version>0.8.7</version>
         </dependency>
         <dependency>
-            <groupId>net.sf.opencsv</groupId>
+            <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
-            <version>2.4-SNAPSHOT</version>
+            <version>3.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>

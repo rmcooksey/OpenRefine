@@ -33,31 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.importers;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringEscapeUtils;
-import org.json.JSONObject;
-
-import au.com.bytecode.opencsv.CSVParser;
-
 import com.google.refine.ProjectMetadata;
 import com.google.refine.importing.ImportingJob;
 import com.google.refine.importing.ImportingUtilities;
 import com.google.refine.model.Project;
 import com.google.refine.util.JSONUtilities;
+import com.opencsv.CSVParser;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.json.JSONObject;
+
+import java.io.*;
+import java.util.*;
 
 public class SeparatorBasedImporter extends TabularImportingParserBase {
     public SeparatorBasedImporter() {

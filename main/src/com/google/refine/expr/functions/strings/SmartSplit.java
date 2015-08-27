@@ -33,17 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.google.refine.expr.functions.strings;
 
-import java.io.IOException;
-import java.util.Properties;
-
-import org.json.JSONException;
-import org.json.JSONWriter;
-
-import au.com.bytecode.opencsv.CSVParser;
-
 import com.google.refine.expr.EvalError;
 import com.google.refine.grel.ControlFunctionRegistry;
 import com.google.refine.grel.Function;
+import com.opencsv.CSVParser;
+import org.json.JSONException;
+import org.json.JSONWriter;
+
+import java.io.IOException;
+import java.util.Properties;
 
 public class SmartSplit implements Function {
 
